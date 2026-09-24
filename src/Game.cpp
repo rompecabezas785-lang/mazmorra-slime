@@ -4,7 +4,7 @@
 #include <cstdlib>
 
 namespace {
-sf::Color pc(Power p){ if(p==Power::Fire)return{255,90,35}; if(p==Power::Water)return{60,180,255}; if(p==Power::Plant)return{90,220,90}; return{190,150,255}; }
+sf::Color pc(Power p){ if(p==Power::Fire)return{255,90,35}; if(p==Power::Water)return{60,180,255}; if(p==Power::Silver)return{90,220,90}; return{190,150,255}; }
 float clampf(float v,float a,float b){return std::max(a,std::min(b,v));}
 void label(sf::RenderWindow&w,const sf::Font&f,const std::string&s,float x,float y,unsigned n,sf::Color c){sf::Text t(s,f,n);t.setPosition(x,y);t.setFillColor(c);w.draw(t);}
 }
@@ -79,14 +79,16 @@ void Game::spawnEnemies(){
  using T=Enemy::Type;std::vector<T>ts;
  switch(level){case 1:ts={T::Slime,T::Bat};break;case 2:ts={T::LavaGolem,T::Salamander};break;case 3:ts={T::Piranha,T::Medusa};break;case 4:ts={T::CarnivorousPlant,T::GiantInsect};break;case 5:ts={T::Ghost,T::Specter,T::DeadKnight};break;case 6:ts={T::Goblin,T::GoblinArcher,T::ShieldGoblin};break;case 7:ts={T::GiantBat,T::RockWorm,T::Miner};break;case 8:ts={T::LivingBook,T::DarkMage,T::InkSpirit};break;default:ts={T::DarkKnight,T::MiniGolem,T::GuardianMage};}
  if(level<10)for(int i=0;i<10+level;i++)enemies.emplace_back(ts[i%ts.size()],{500.f+i*260.f,450.f-(i%3)*80.f});else boss=std::make_unique<Boss>(sf::Vector2f(worldWidth-500,500));
- if(level==1)player.unlocked={true,false,false,false};if(level==2)player.unlocked[1]=true;if(level==3)player.unlocked[2]=true;if(level>=4)for(auto&u:player.unlocked)u=true;
+ player.unlocked[0]=true;if(level>=3)player.unlocked[1]=true;
+if(level>=5)player.unlocked[2]=true;
+if(level>=7)player.unlocked[3]=true;
 }
 void Game::resetLevel(int n){level=n;gameOver=victory=false;boss.reset();enemies.clear();projectiles.clear();particles.clear();solids.clear();player.reset(spawn);buildLevel();spawnEnemies();}
 void Game::nextLevel(){if(level<10)resetLevel(level+1);else victory=true;}
 bool Game::levelComplete()const{return level==10?(boss&&!boss->alive()):(enemies.empty()&&player.position().x>worldWidth-180);}
 void Game::update(float dt){
  if(gameOver||victory){if(sf::Keyboard::isKeyPressed(sf::Keyboard::Enter))resetLevel(1);return;}
- if(sf::Keyboard::isKeyPressed(sf::Keyboard::Num1))player.setPower(Power::Spirit);if(sf::Keyboard::isKeyPressed(sf::Keyboard::Num2))player.setPower(Power::Fire);if(sf::Keyboard::isKeyPressed(sf::Keyboard::Num3))player.setPower(Power::Water);if(sf::Keyboard::isKeyPressed(sf::Keyboard::Num4))player.setPower(Power::Plant);
+ if(sf::Keyboard::isKeyPressed(sf::Keyboard::Num1))player.setPower(Power::Spirit);if(sf::Keyboard::isKeyPressed(sf::Keyboard::Num2))player.setPower(Power::Fire);if(sf::Keyboard::isKeyPressed(sf::Keyboard::Num3))player.setPower(Power::Water);if(sf::Keyboard::isKeyPressed(sf::Keyboard::Num4))player.setPower(Power::Silver);
  static bool prevK=false;bool k=sf::Keyboard::isKeyPressed(sf::Keyboard::K);if(k&&!prevK)player.special(projectiles,particles);prevK=k;
  player.update(dt,solids,projectiles);for(auto&e:enemies)e.update(dt,player.position(),projectiles);if(boss)boss->update(dt,player.position(),projectiles,particles);
  for(auto&p:projectiles){p.pos+=p.vel*dt;p.life-=dt;if(p.life>0&&!p.enemy){for(auto&e:enemies)if(e.alive()&&e.bounds().contains(p.pos)){e.hit(p.damage);p.life=0;}if(boss&&boss->alive()&&boss->bounds().contains(p.pos)){boss->hit(p.damage);p.life=0;}}else if(p.enemy&&p.life>0&&player.bounds().contains(p.pos)){player.damage(p.damage);p.life=0;}}
@@ -94,7 +96,7 @@ void Game::update(float dt){
  for(auto&p:particles){p.pos+=p.vel*dt;p.life-=dt;}particles.erase(std::remove_if(particles.begin(),particles.end(),[](auto&p){return p.life<=0;}),particles.end());
  if(player.dead)gameOver=true;if(levelComplete())nextLevel();
 }
-void Game::drawHud(){if(!fontLoaded)return;sf::RectangleShape b({300,24});b.setPosition(20,20);b.setFillColor({45,45,50});window.draw(b);b.setSize({300.f*player.hp/player.maxHp,24});b.setFillColor({70,210,90});window.draw(b);label(window,font,"HP "+std::to_string((int)player.hp)+"/100",28,18,16,sf::Color::White);label(window,font,"Nivel "+std::to_string(level)+"/10",20,55,22,sf::Color::White);const char*n[]={"ESPIRITU","FUEGO","AGUA","PLANTA"};for(int i=0;i<4;i++)label(window,font,std::to_string(i+1)+" "+n[i],20+i*150,90,16,player.unlocked[i]?pc((Power)i):sf::Color(100,100,100));label(window,font,"A/D mover  W/SPACE saltar  J ataque  K especial  1-4 poderes  ESC salir",20,675,16,sf::Color(220,220,220));if(boss&&boss->alive()){sf::RectangleShape q({600,22});q.setPosition(340,20);q.setFillColor({55,55,55});window.draw(q);q.setSize({600.f*boss->hp/boss->maxHp,22});q.setFillColor({190,70,60});window.draw(q);label(window,font,"GOLEM ANCESTRAL",500,45,18,sf::Color::White);}}
+void Game::drawHud(){if(!fontLoaded)return;sf::RectangleShape b({300,24});b.setPosition(20,20);b.setFillColor({45,45,50});window.draw(b);b.setSize({300.f*player.hp/player.maxHp,24});b.setFillColor({70,210,90});window.draw(b);label(window,font,"HP "+std::to_string((int)player.hp)+"/100",28,18,16,sf::Color::White);label(window,font,"Nivel "+std::to_string(level)+"/10",20,55,22,sf::Color::White);const char*n[]={"ESPIRITU","FUEGO","AGUA","PLATA"};for(int i=0;i<4;i++)label(window,font,std::to_string(i+1)+" "+n[i],20+i*150,90,16,player.unlocked[i]?pc((Power)i):sf::Color(100,100,100));label(window,font,"A/D mover  W/SPACE saltar  J ataque  K especial  1-4 poderes  ESC salir",20,675,16,sf::Color(220,220,220));if(boss&&boss->alive()){sf::RectangleShape q({600,22});q.setPosition(340,20);q.setFillColor({55,55,55});window.draw(q);q.setSize({600.f*boss->hp/boss->maxHp,22});q.setFillColor({190,70,60});window.draw(q);label(window,font,"GOLEM ANCESTRAL",500,45,18,sf::Color::White);}}
 void Game::draw(){
  sf::Color bg={18,20,30};if(level==2)bg={45,25,25};if(level==3)bg={20,45,65};if(level==4)bg={25,55,30};if(level==5)bg={25,25,50};if(level==8)bg={35,20,45};window.clear(bg);
  float cam=clampf(player.position().x-420,0.f,std::max(0.f,worldWidth-1280.f));for(auto&s:solids){sf::RectangleShape r({s.width,s.height});r.setPosition(s.left-cam,s.top);r.setFillColor({65,60,65});r.setOutlineThickness(2);r.setOutlineColor({100,100,115});window.draw(r);}
