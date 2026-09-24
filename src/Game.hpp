@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-enum class Power { Spirit=0, Fire=1, Water=2, Plant=3 };
+enum class Power { Spirit=0, Fire=1, Water=2, Silver=3 };
 
 struct Projectile { sf::Vector2f pos{},vel{}; float damage=10,radius=7,life=2; Power power=Power::Spirit; bool enemy=false; };
 struct Particle { sf::Vector2f pos{},vel{}; float life=.6f,size=4; Power power=Power::Spirit; };
